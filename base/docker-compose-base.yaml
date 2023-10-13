@@ -1,0 +1,56 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+services:
+
+  orderer0.ifinca.co:
+    container_name: orderer0.ifinca.co
+    image: hyperledger/fabric-orderer:$IMAGE_TAG
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=ifincaordererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      # enabled TLS
+      - ORDERER_GENERAL_TLS_ENABLED=false
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_KAFKA_TOPIC_REPLICATIONFACTOR=1
+      - ORDERER_KAFKA_VERBOSE=true
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+    - ../channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+    - ../crypto-config/ordererOrganizations/ifinca.co/orderers/orderer0.ifinca.co/msp:/var/hyperledger/orderer/msp
+    - ../crypto-config/ordererOrganizations/ifinca.co/orderers/orderer0.ifinca.co/tls/:/var/hyperledger/orderer/tls
+    - orderer0.ifinca.co:/var/hyperledger/production/orderer
+    ports:
+      - 7050:7050
+
+  peer0.ifinca.co:
+    container_name: peer0.ifinca.co
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.ifinca.co
+      - CORE_PEER_ADDRESS=peer0.ifinca.co:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.ifinca.co:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.ifinca.co:7051
+      - CORE_PEER_LOCALMSPID=ifincaMSP
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0:5984
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/ifinca.co/peers/peer0.ifinca.co/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/ifinca.co/peers/peer0.ifinca.co/tls:/etc/hyperledger/fabric/tls
+        - peer0.ifinca.co:/var/hyperledger/production
+    ports:
+      - 7051:7051
+      - 7053:7053
